@@ -7,31 +7,37 @@
 
 #include <PID_v1.h>
 #include <ESP8266WiFi.h>
+#include "config.h"
+#include "heater.h"
+#include "sensor_max31855.h"
+#include "tuning.h"
+#include "web.h"
 
 // WIFI
 
-#define WIFI_SSID "HomeNetwork"
-#define WIFI_PASS "MyPassword"
+#define WIFI_SSID "telephasic workshop"
+#define WIFI_PASS "sti11Aliv3"
 #define MAX_CONNECTION_RETRIES 20
+#define HEAT_RELAY_PIN D5
 
 // options for special modules
 #define ENABLE_JSON
 #define ENABLE_HTTP
-#define ENABLE_MQTT
+//#define ENABLE_MQTT
 
 // use simulation or real heater and sensors
 //#define SIMULATION_MODE
 
 //
-// STANDARD reset values based on Gaggia CC
+// STANDARD reset values for Rancilio Silvia
 //
-#define S_P 115.0
-#define S_I 4.0
-#define S_D 850.0
-#define S_aP 100.0
+#define S_P 91.0 //normal
+#define S_I .26
+#define S_D 7950
+#define S_aP 100.0 //adaptive
 #define S_aI 0.0
 #define S_aD 0.0
-#define S_TSET 94.0
+#define S_TSET 100.0 //target temp
 #define S_TBAND 1.5
 
 //
@@ -50,6 +56,7 @@ double gInputTemp=20.0;
 double gOutputPwr=0.0;
 double gP = S_P, gI = S_I, gD = S_D;
 double gaP = S_aP, gaI = S_aI, gaD = S_aD;
+//const unsigned int  HEAT_RELAY_PIN = 14;
 
 unsigned long time_now=0;
 unsigned long time_last=0;
@@ -186,4 +193,3 @@ void loop() {
   #endif 
   
 }
-

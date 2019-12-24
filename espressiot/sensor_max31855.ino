@@ -7,15 +7,17 @@
 
 #ifndef SIMULATION_MODE
 
-#include <TSIC.h>
-
-// pins for power and signal
-#define TSIC_SIG D4 // D4 pin of NodeMCU just in the right position
-#define TSIC_SMP_TIME 100
+#include "Adafruit_MAX31855.h"
 
 #define ACCURACY 0.1
+#define SMP_TIME 100
 
-TSIC TSens1(TSIC_SIG);
+#define MAXDO   3
+#define MAXCS   4
+#define MAXCLK  5
+
+// Initialize the Thermocouple
+Adafruit_MAX31855 thermocouple(MAXCLK, MAXCS, MAXDO);
 
 float lastT = 0.0;
 float SumT = 0.0;
@@ -29,9 +31,9 @@ void setupSensor() {
 }
 
 void updateTempSensor() {
-  if (abs(millis() - lastSensTime) >= TSIC_SMP_TIME) {
-    if(TSens1.getTemperature(&raw_temp)) {
-      float curT = TSens1.calc_Celsius(&raw_temp);
+  if (abs(millis() - lastSensTime) >= SMP_TIME) {
+    if(thermocouple.readInternal()) {
+      double curT = thermocouple.readCelsius();
 
       // very simple selection of noise hits/invalid values 
       if(abs(curT-lastT)<1.0 || lastT<1) {
