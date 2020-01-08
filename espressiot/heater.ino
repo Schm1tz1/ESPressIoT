@@ -50,4 +50,14 @@ void _turnHeatElementOnOff(boolean on) {
   heaterState = on;
 }
 
+void checkIfSteaming(){
+
+  if(steaming)
+  {
+    gTargetTemp = gSteamTemp;
+  }else{
+    gTargetTemp = S_TSET;
+  }
+}
+
 // End Heater Control

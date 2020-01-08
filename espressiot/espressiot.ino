@@ -7,6 +7,7 @@
 
 #include <PID_v1.h>
 #include <ESP8266WiFi.h>
+#include "arduino_secrets.h"
 #include "config.h"
 #include "heater.h"
 #include "sensor_max31855.h"
@@ -15,10 +16,10 @@
 
 // WIFI
 
-#define WIFI_SSID "telephasic workshop"
-#define WIFI_PASS "sti11Aliv3"
+
 #define MAX_CONNECTION_RETRIES 20
-#define HEAT_RELAY_PIN D5
+#define BUTTON_PIN D1
+#define HEAT_RELAY_PIN D3
 
 // options for special modules
 #define ENABLE_JSON
@@ -38,6 +39,7 @@
 #define S_aI 0.0
 #define S_aD 0.0
 #define S_TSET 100.0 //target temp
+#define S_STEAM 120.0
 #define S_TBAND 1.5
 
 //
@@ -51,6 +53,7 @@
 // global variables
 //
 double gTargetTemp=S_TSET;
+double gSteamTemp=S_STEAM;
 double gOvershoot=S_TBAND;
 double gInputTemp=20.0;
 double gOutputPwr=0.0;
@@ -62,8 +65,10 @@ unsigned long time_now=0;
 unsigned long time_last=0;
 
 boolean tuning = false;
+boolean steaming = false;
 boolean osmode = false;
 boolean poweroffMode = false;
+boolean fahrenheitOn = true;
 
 //
 // gloabl classes
@@ -73,7 +78,7 @@ PID ESPPID(&gInputTemp, &gOutputPwr, &gTargetTemp, gP, gI, gD, DIRECT);
 void setup()
 {
   gOutputPwr=0;
-
+  pinMode(BUTTON_PIN, INPUT);
   Serial.begin(115200);
 
   Serial.println("Mounting SPIFFS...");
@@ -97,7 +102,7 @@ void setup()
    
   Serial.println("Settin up PID...");
 
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  WiFi.begin(SECRET_SSID, SECRET_WIFI_PASS);
   Serial.println("");
   Serial.print("MAC address: ");
   Serial.println(WiFi.macAddress());
@@ -154,12 +159,14 @@ void loop() {
 
   updateTempSensor(); 
   gInputTemp=getTemp();
+  checkIfSteaming();
+
 
   if(abs(time_now-time_last)>=PID_INTERVAL or time_last > time_now) {
     if(poweroffMode==true) {
       gOutputPwr=0;
       setHeatPowerPercentage(0);
-    }
+    }    
     else if(tuning==true)
     {
       tuning_loop();

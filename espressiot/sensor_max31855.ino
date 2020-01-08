@@ -12,9 +12,9 @@
 #define ACCURACY 0.1
 #define SMP_TIME 100
 
-#define MAXDO   3
-#define MAXCS   4
-#define MAXCLK  5
+#define MAXDO   D6
+#define MAXCS   D7
+#define MAXCLK  D5
 
 // Initialize the Thermocouple
 Adafruit_MAX31855 thermocouple(MAXCLK, MAXCS, MAXDO);

@@ -1,7 +1,7 @@
 #ifndef HEATER_H
 #define HEATER_H
 
-
+void checkIfSteaming(void);
 
 void setupHeater(void);
 

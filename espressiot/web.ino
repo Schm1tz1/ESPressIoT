@@ -9,6 +9,7 @@
 
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPUpdateServer.h>
+#include "html.h"
 
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdater;
@@ -31,17 +32,8 @@ void handleNotFound() {
 }
 
 void handleRoot() {
-  String message = "<head><meta http-equiv=\"refresh\" content=\"2\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n<title>EspressIoT</title></head><h1>EspressIoT</h1>\n";
-  message += "Measured Temperature: " + String(gInputTemp) + "<br/>\n";
-  message += "Target Temperature: " + String(gTargetTemp) + "<br/>\n";
-  message += "Heater Power: " + String(gOutputPwr) + "<br/>\n";
-  message += "\n";
-  message += "<hr/>\n";
-  if(poweroffMode) message += "<a href=\"./toggleheater\"><button style=\"background-color:#FF0000\">Toggle Heater</button></a><br/>\n";
-  else message += "<a href=\"./toggleheater\"><button style=\"background-color:#00FF00\">Toggle Heater</button></a><br/>\n";
-  message += "<hr/>\n";
-  message += "<a href=\"./config\"><button>Settings</button></a><br/>\n";
-  server.send(200, "text/html", message);
+  String s = MAIN_page;
+  server.send(200, "text/html", s);
 }
 
 void handleConfig() {
@@ -96,42 +88,46 @@ void handleTuningStats() {
 }
 
 void handleSetConfig() {
-  String message = "<head><meta http-equiv=\"refresh\" content=\"2;url=/config\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /><title>EspressIoT</title></head><h1>Configuration changed !</h1>\n";
-  for ( uint8_t i = 0; i < server.args(); i++ ) {
-    if(server.argName(i)=="tset") {
-          message += "new tset: " + server.arg ( i ) + "<br/>\n";
-          gTargetTemp = ( (server.arg(i)).toFloat() );
-    }
-    else if(server.argName(i)=="tband") {
-          message += "new tset: " + server.arg ( i ) + "<br/>\n";
-          gOvershoot = ( (server.arg(i)).toFloat() );
-    }
-    else if(server.argName(i)=="pgain") {
-          message += "new pgain: " + server.arg ( i ) + "<br/>\n";
-          gP = ( (server.arg(i)).toFloat() );
-    }
-    else if(server.argName(i)=="igain") {
-          message += "new igain: " + server.arg ( i ) + "<br/>\n";
-          gI = ( (server.arg(i)).toFloat() );
-    }
-    else if(server.argName(i)=="dgain") {
-          message += "new pgain: " + server.arg ( i ) + "<br/>\n";
-          gD = ( (server.arg(i)).toFloat() );
-    }
-    else if(server.argName(i)=="apgain") {
-          message += "new pgain: " + server.arg ( i ) + "<br/>\n";
-          gaP = ( (server.arg(i)).toFloat() );
-    }
-    else if(server.argName(i)=="aigain") {
-          message += "new igain: " + server.arg ( i ) + "<br/>\n";
-          gaI = ( (server.arg(i)).toFloat() );
-    }
-    else if(server.argName(i)=="adgain") {
-          message += "new pgain: " + server.arg ( i ) + "<br/>\n";
-          gaD = ( (server.arg(i)).toFloat() );
-    }
+  // String message = "<head><meta http-equiv=\"refresh\" content=\"2;url=/config\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /><title>EspressIoT</title></head><h1>Configuration changed !</h1>\n";
+  // for ( uint8_t i = 0; i < server.args(); i++ ) {
+  //   if(server.argName(i)=="tset") {
+  //         message += "new tset: " + server.arg ( i ) + "<br/>\n";
+  //         gTargetTemp = ( (server.arg(i)).toFloat() );
+  //   }
+  //   else if(server.argName(i)=="tband") {
+  //         message += "new tset: " + server.arg ( i ) + "<br/>\n";
+  //         gOvershoot = ( (server.arg(i)).toFloat() );
+  //   }
+  //   else if(server.argName(i)=="pgain") {
+  //         message += "new pgain: " + server.arg ( i ) + "<br/>\n";
+  //         gP = ( (server.arg(i)).toFloat() );
+  //   }
+  //   else if(server.argName(i)=="igain") {
+  //         message += "new igain: " + server.arg ( i ) + "<br/>\n";
+  //         gI = ( (server.arg(i)).toFloat() );
+  //   }
+  //   else if(server.argName(i)=="dgain") {
+  //         message += "new pgain: " + server.arg ( i ) + "<br/>\n";
+  //         gD = ( (server.arg(i)).toFloat() );
+  //   }
+  //   else if(server.argName(i)=="apgain") {
+  //         message += "new pgain: " + server.arg ( i ) + "<br/>\n";
+  //         gaP = ( (server.arg(i)).toFloat() );
+  //   }
+  //   else if(server.argName(i)=="aigain") {
+  //         message += "new igain: " + server.arg ( i ) + "<br/>\n";
+  //         gaI = ( (server.arg(i)).toFloat() );
+  //   }
+  //   else if(server.argName(i)=="adgain") {
+  //         message += "new pgain: " + server.arg ( i ) + "<br/>\n";
+  //         gaD = ( (server.arg(i)).toFloat() );
+  //   }
     
-  }
+  //}
+  StaticJsonBuffer<200> newBuffer;
+  JsonObject& newjson = newBuffer.parseObject(server.arg("plain"));
+  String message = newjson.get<unsigned int>("targetSlider") + " ";
+  message += newjson.get<double>("thresholdSlider");
   server.send(200, "text/html", message);
   
 }
@@ -173,12 +169,7 @@ void handleResetConfig() {
   server.send(200, "text/html", message);
 }
 
-void handleToggleHeater() {
-  String message = "<head><meta http-equiv=\"refresh\" content=\"2;url=/\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /><title>EspressIoT</title></head>";
-  message += "<h1> Done ! </h1>";
-  poweroffMode = (!poweroffMode);
-  server.send(200, "text/html", message);
-}
+
 
 void handleTuningMode() {
   String message = "<head><meta http-equiv=\"refresh\" content=\"2;url=/config\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /><title>EspressIoT</title></head>";
@@ -199,6 +190,50 @@ void handleTuningMode() {
   server.send(200, "text/html", message);
 }
 
+void handleTurnOnHeater() {
+  String message = "Heating On";
+  poweroffMode = false;
+  server.send(200, "text/html", message);
+}
+void handleTurnOffHeater() {
+  String message = "Power Off";
+  poweroffMode = true;
+  server.send(200, "text/html", message);
+}
+
+void handleToggleSteam(){
+  String message;
+  if(steaming){
+    steaming = false;
+    message = "Steaming Mode Off";
+  }else{
+    steaming = true;
+    message = "Steaming Mode On";
+  }
+  server.send(200, "text/html", message);
+}
+
+void handleSendState(){
+  String currentTemp;
+  if(fahrenheitOn){
+    currentTemp = (String)round(1.8*gInputTemp+32);
+  }else{
+    currentTemp = String(gInputTemp);
+  }
+  String message = "{\"current\":" + currentTemp;
+  message += ", \"target\": " + String(gTargetTemp);
+  message += ", \"threshold\": " + String(gOvershoot);
+  message += ", \"normalP\": " + String(gP);
+  message += ", \"normalI\": " + String(gI);
+  message += ", \"normalD\": " + String(gD);
+  message += ", \"adaptiveP\": " + String(gaP);
+  message += ", \"adaptiveI\": " + String(gaI);
+  message += ", \"adaptiveD\": " + String(gaD);
+  message += ", \"isAdaptivePID\": " + String(!osmode);
+  message += ", \"output\": " + String(gOutputPwr/10) + "}";
+  server.send(200, "application/json", message);
+}
+
 void setupWebSrv() {
  
   httpUpdater.setup(&server);
@@ -212,7 +247,10 @@ void setupWebSrv() {
   server.on("/tuningmode", handleTuningMode);
   server.on("/tuningstats", handleTuningStats);
   server.on("/set_tuning", handleSetTuning);
-  server.on("/toggleheater", handleToggleHeater);
+  server.on("/heateron", handleTurnOnHeater);
+  server.on("/heateroff", handleTurnOffHeater);
+  server.on("/togglesteam", handleToggleSteam);
+  server.on("/state", handleSendState);
   server.onNotFound ( handleNotFound );
   server.begin();
   Serial.println("HTTP server started");
