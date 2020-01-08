@@ -1,4 +1,4 @@
 .DS_Store
 *arduino_secrets.h
-.vscode
-espressiot/.vscode
+.vscode/
+espressiot/.vscode/
