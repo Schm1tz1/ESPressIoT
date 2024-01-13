@@ -1,10 +1,3 @@
-//
-// ESPressIoT Controller for Espresso Machines
-// 2016-2021 by Roman Schmitz
-//
-// JSON Config File on SPIFFS
-//
-
 #ifdef ENABLE_JSON
 
 #include <ArduinoJson.h>
@@ -12,6 +5,7 @@
 #include "FS.h"
 
 #define BUF_SIZE 1024
+#define CONFIG_FILE_PATH "/config.json"
 
 bool prepareFS() {
   if (!SPIFFS.begin()) {
@@ -22,7 +16,7 @@ bool prepareFS() {
 }
 
 bool loadConfig() {
-  File configFile = SPIFFS.open("/config.json", "r");
+  File configFile = SPIFFS.open(CONFIG_FILE_PATH, "r");
   if (!configFile) {
     Serial.println("Failed to open config file");
     return false;
@@ -38,25 +32,18 @@ bool loadConfig() {
     return false;
   }
 
-  //wifi_ssid = jsonDocument["ssid"];
-  //wifi_pass = jsonDocument["password"];
-  gTargetTemp = jsonDocument["tset"];
-  gOvershoot = jsonDocument["tband"];
-  gP = jsonDocument["P"], gI = jsonDocument["I"], gD = jsonDocument["D"];
-  gaP = jsonDocument["aP"], gaI = jsonDocument["aI"], gaD = jsonDocument["aD"];
+  // Assign values from jsonDocument to variables
 
+  configFile.close();
   return true;
 }
 
 bool saveConfig() {
   DynamicJsonDocument jsonDocument(BUF_SIZE);
 
-  //jsonDocument["ssid"] = wifi_ssid;  jsonDocument["password"] = wifi_pass;
-  jsonDocument["tset"] = gTargetTemp;  jsonDocument["tband"] = gOvershoot;
-  jsonDocument["P"] = gP, jsonDocument["I"] = gI, jsonDocument["D"] = gD;
-  jsonDocument["aP"] = gaP, jsonDocument["aI"] = gaI, jsonDocument["aD"] = gaD;
+  // Fill jsonDocument with variables
 
-  File configFile = SPIFFS.open("/config.json", "w");
+  File configFile = SPIFFS.open(CONFIG_FILE_PATH, "w");
   if (!configFile) {
     Serial.println("Failed to open config file for writing");
     return false;
@@ -77,10 +64,7 @@ bool saveConfig() {
 }
 
 void resetConfig() {
-  gP = S_P; gI = S_I; gD = S_D;
-  gaP = S_aP; gaI = S_aI; gaD = S_aD;
-  gTargetTemp = S_TSET;
-  gOvershoot = S_TBAND;
+  // Reset variables
 }
 
 #endif
