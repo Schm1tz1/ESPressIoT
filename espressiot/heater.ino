@@ -3,32 +3,33 @@
 // 2016-2021 by Roman Schmitz
 //
 // Simplified Heater PWM - just connect SSR to HEAT_RELAY_PIN
-//
 
 #define HEAT_RELAY_PIN D5 // D5 + GND are close on NodeMCU
 
-float heatcycles; // the number of millis out of 1000 for the current heat amount (percent * 10)
-
-boolean heaterState = 0;
+float heatcycles = 0.0; // the number of millis out of 1000 for the current heat amount (percent * 10)
+boolean heaterState = false;
 unsigned long heatCurrentTime = 0, heatLastTime = 0;
 
 #ifndef SIMULATION_MODE
+
 void setupHeater() {
-  pinMode(HEAT_RELAY_PIN , OUTPUT);
+  pinMode(HEAT_RELAY_PIN, OUTPUT);
 }
 
 void updateHeater() {
-  boolean h;
-  heatCurrentTime = time_now;
-  if (heatCurrentTime - heatLastTime >= HEATER_INTERVAL or heatLastTime > heatCurrentTime) { //second statement prevents overflow errors
+  heatCurrentTime = millis();
+
+  if (heatCurrentTime - heatLastTime >= HEATER_INTERVAL || heatLastTime > heatCurrentTime) {
     // begin cycle
-    _turnHeatElementOnOff(1);  //
+    _turnHeatElementOnOff(true);
     heatLastTime = heatCurrentTime;
   }
+
   if (heatCurrentTime - heatLastTime >= heatcycles) {
-    _turnHeatElementOnOff(0);
+    _turnHeatElementOnOff(false);
   }
 }
+
 #endif
 
 void setHeatPowerPercentage(float power) {
@@ -46,7 +47,7 @@ float getHeatCycles() {
 }
 
 void _turnHeatElementOnOff(boolean on) {
-  digitalWrite(HEAT_RELAY_PIN, on); //turn pin high
+  digitalWrite(HEAT_RELAY_PIN, on);
   heaterState = on;
 }
 
