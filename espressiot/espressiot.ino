@@ -1,37 +1,16 @@
 #include <ArduinoJson.h>
-
-//
-// ESPressIoT Controller for Espresso Machines
-// 2016-2021 by Roman Schmitz
-//
-// Uses PID library
-//
-
 #include <PID_v1.h>
 #include <ESP8266WiFi.h>
-
-// WIFI
-//
-// please set your wifi SSID and password in WiFiSecrets.h
 #include "WiFiSecrets.h"
 
 #define MAX_CONNECTION_RETRIES 20
-
-// options for special modules
 #define ENABLE_JSON
 #define ENABLE_HTTP
 #define ENABLE_TELNET
 #define ENABLE_MQTT
-
-// enable detectio of an external switch/thermostat
-//#define ENABLE_SWITCH_DETECTION
-
-// use simulation or real heater and sensors
+#define ENABLE_SWITCH_DETECTION
 #define SIMULATION_MODE
 
-//
-// STANDARD reset values based on Gaggia CC
-//
 #define S_P 115.0
 #define S_I 4.0
 #define S_D 850.0
@@ -41,16 +20,10 @@
 #define S_TSET 96.5
 #define S_TBAND 1.5
 
-//
-// Intervals for I/O
-//
 #define HEATER_INTERVAL 1000
 #define DISPLAY_INTERVAL 1000
 #define PID_INTERVAL 200
 
-//
-// global variables
-//
 double gTargetTemp = S_TSET;
 double gOvershoot = S_TBAND;
 double gInputTemp = 20.0;
@@ -71,25 +44,16 @@ boolean externalControlMode = false;
 
 String gStatusAsJson;
 
-//
-// gloabl classes
-//
 PID ESPPID(&gInputTemp, &gOutputPwr, &gTargetTemp, gP, gI, gD, DIRECT);
 
-void setup()
-{
+void setup() {
   gOutputPwr = 0;
-
   Serial.begin(115200);
 
-  Serial.println("Mounting SPIFFS...");
   if (!prepareFS()) {
     Serial.println("Failed to mount SPIFFS !");
-  } else {
-    Serial.println("Mounted.");
   }
 
-  Serial.println("Loading config...");
   if (!loadConfig()) {
     Serial.println("Failed to load config. Using default values and creating config...");
     if (!saveConfig()) {
@@ -101,30 +65,9 @@ void setup()
     Serial.println("Config loaded");
   }
 
-  Serial.println("Settin up PID...");
+  Serial.println("Setting up PID...");
 
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  WiFi.macAddress(mac);
-  Serial.println("");
-  Serial.print("MAC address: ");
-  Serial.println(macToString(mac));
-
-  Serial.print("Connecting to Wifi AP");
-  for (int i = 0; i < MAX_CONNECTION_RETRIES && WiFi.status() != WL_CONNECTED; i++) {
-    delay(500);
-    Serial.print(".");
-  }
-
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.print("Error connection to AP after ");
-    Serial.print(MAX_CONNECTION_RETRIES);
-    Serial.println(" retries.");
-  }
-
-  Serial.println("");
-  Serial.println("WiFi connected.");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  connectToWiFi();
 
 #ifdef ENABLE_TELNET
   setupTelnet();
@@ -142,11 +85,8 @@ void setup()
   setupSwitch();
 #endif
 
-  // setup components
-  setupHeater();
-  setupSensor();
+  setupComponents();
 
-  // start PID
   ESPPID.SetTunings(gP, gI, gD);
   ESPPID.SetSampleTime(PID_INTERVAL);
   ESPPID.SetOutputLimits(0, 1000);
@@ -154,11 +94,6 @@ void setup()
 
   time_now = millis();
   time_last = time_now;
-
-}
-
-void serialStatus() {
-  Serial.println(gStatusAsJson);
 }
 
 void loop() {
@@ -171,48 +106,9 @@ void loop() {
   loopSwitch();
 #endif
 
-  if (abs(time_now - time_last) >= PID_INTERVAL or time_last > time_now) {
-    if (poweroffMode == true) {
-      gOutputPwr = 0;
-      setHeatPowerPercentage(gOutputPwr);
-    }
-    else if (externalControlMode == true) {
-      gOutputPwr = 1000 * gButtonState;
-      setHeatPowerPercentage(gOutputPwr);
-    }
-    else if (tuning == true)
-    {
-      tuning_loop();
-    }
-    else  {
-      if ( !osmode && abs(gTargetTemp - gInputTemp) >= gOvershoot ) {
-        ESPPID.SetTunings(gaP, gaI, gaD);
-        osmode = true;
-      }
-      else if ( osmode && abs(gTargetTemp - gInputTemp) < gOvershoot ) {
-        ESPPID.SetTunings(gP, gI, gD);
-        osmode = false;
-      }
-      if (ESPPID.Compute() == true) {
-        setHeatPowerPercentage(gOutputPwr);
-      }
-    }
-
-    // create status String (JSON)
-    gStatusAsJson = statusAsJson();
-
-#ifdef ENABLE_MQTT
-    loopMQTT();
-#endif
-
-#ifdef ENABLE_TELNET
-    loopTelnet();
-#endif
-
-#ifdef ENABLE_SERIAL
-    serialStatus();
-#endif
-
+  if (shouldRunPID()) {
+    runPIDControl();
+    updateStatus();
     time_last = time_now;
   }
 
@@ -221,5 +117,5 @@ void loop() {
 #ifdef ENABLE_HTTP
   loopWebSrv();
 #endif
-
 }
+
