@@ -9,10 +9,9 @@
 
 #include <TSIC.h>
 
-// pins for power and signal
+// Pins for power and signal
 #define TSIC_SIG D4 // D4 pin of NodeMCU just in the right position
 #define TSIC_SMP_TIME 100
-
 #define ACCURACY 0.1
 
 TSIC TSens1(TSIC_SIG);
@@ -24,16 +23,22 @@ int CntT = 0;
 uint16_t raw_temp = 0;
 unsigned long lastSensTime;
 
+// Function prototypes
+void setupSensor();
+void updateTempSensor();
+float calculateAverageTemperature();
+float getTemp();
+
 void setupSensor() {
   lastSensTime = millis();
 }
 
 void updateTempSensor() {
-  if (abs(millis() - lastSensTime) >= TSIC_SMP_TIME) {
+  if (millis() - lastSensTime >= TSIC_SMP_TIME) {
     if (TSens1.getTemperature(&raw_temp)) {
       float curT = TSens1.calc_Celsius(&raw_temp);
 
-      // very simple selection of noise hits/invalid values
+      // Very simple selection of noise hits/invalid values
       if (abs(curT - lastT) < 1.0 || lastT < 1) {
         SumT += curT;
         lastT = curT;
@@ -44,16 +49,20 @@ void updateTempSensor() {
   }
 }
 
-float getTemp() {
-  float retVal = gInputTemp;
+float calculateAverageTemperature() {
+  float avgTemp = gInputTemp;
 
   if (CntT >= 1) {
-    retVal = (SumT / CntT);
-    SumT = 0.;
+    avgTemp = SumT / CntT;
+    SumT = 0.0;
     CntT = 0;
   }
 
-  return retVal;
+  return avgTemp;
+}
+
+float getTemp() {
+  return calculateAverageTemperature();
 }
 
 #endif
