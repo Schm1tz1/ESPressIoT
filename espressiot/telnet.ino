@@ -12,6 +12,10 @@
 WiFiServer telnetServer(23);
 WiFiClient telnetClient;
 
+// Function prototypes
+void telnetStatus();
+void handleTelnetClient();
+
 void telnetStatus() {
   telnetClient.println(gStatusAsJson);
 }
@@ -25,7 +29,7 @@ void setupTelnet() {
   Serial.println(ESP.getFreeHeap());
 }
 
-void loopTelnet() {
+void handleTelnetClient() {
   if (telnetServer.hasClient()) {
     if (!telnetClient || !telnetClient.connected()) {
       if (telnetClient) telnetClient.stop();
@@ -37,6 +41,10 @@ void loopTelnet() {
   if (telnetClient && telnetClient.connected() && telnetClient.available()) {
     telnetStatus();
   }
+}
+
+void loopTelnet() {
+  handleTelnetClient();
 }
 
 #endif
